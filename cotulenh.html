@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cờ Tư Lệnh</title>
+<style>
+:root{
+  --bg:#0e1411; --panel:#18211b; --panel2:#202b23; --line:#37472f;
+  --ink:#ece9dc; --dim:#9aa891; --gold:#c9a24b;
+  --red:#c0392b; --red-d:#7d1f16; --blue:#2f8fc0; --blue-d:#1a5a80;
+  --land:#ffffff; --sea:#a8dced; --grid:#1a1a1a; --frame:#a08b6a;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Georgia,'Times New Roman',serif;min-height:100vh}
+.app{max-width:1300px;margin:0 auto;padding:16px 14px 40px}
+header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:16px}
+header h1{margin:0;font-size:24px;color:var(--gold);letter-spacing:.5px}
+header .sub{font-size:12.5px;color:var(--dim);font-style:italic}
+.tools{display:flex;gap:7px;flex-wrap:wrap}
+button.b{background:var(--panel2);border:1px solid var(--line);color:var(--ink);padding:7px 13px;border-radius:3px;cursor:pointer;font-family:inherit;font-size:13px}
+button.b:hover{border-color:var(--gold);background:#2a372c}
+button.b.p{background:linear-gradient(180deg,#7a5f28,#5a451b);border-color:var(--gold);color:#fbeecb}
+button.b.sm{padding:5px 9px;font-size:12px}
+button.b.on{border-color:var(--gold);background:#3a2f16;color:#fbeecb}
+.wrap{display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start}
+@media(max-width:960px){.wrap{grid-template-columns:1fr}}
+.boardbox{background:#131a15;border:1px solid var(--line);border-radius:6px;padding:16px 10px 22px;display:flex;flex-direction:column;align-items:center;gap:12px;overflow-x:auto}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;width:100%;max-width:560px;font-size:13px}
+.chip{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:5px 11px}
+.dot{width:10px;height:10px;border-radius:50%}
+.dot.RED{background:var(--red);box-shadow:0 0 7px var(--red)}
+.dot.BLUE{background:var(--blue);box-shadow:0 0 7px var(--blue)}
+.warn{color:#ffbe55;font-weight:bold;font-size:12px;visibility:hidden}
+.warn.on{visibility:visible}
+.scene{perspective:1400px;perspective-origin:50% 25%}
+#stage{position:relative;transform-style:preserve-3d;transition:transform .4s;transform:rotateX(46deg)}
+#stage.flat{transform:none}
+#terrain{position:absolute;inset:0}
+.pc{position:absolute;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transform-origin:center center;border:2px solid rgba(0,0,0,.35);
+  box-shadow:0 5px 8px rgba(0,0,0,.5),inset 0 2px 3px rgba(255,255,255,.3),inset 0 -3px 5px rgba(0,0,0,.35)}
+.pc.RED{background:radial-gradient(circle at 35% 28%,#e2695a,var(--red) 58%,var(--red-d))}
+.pc.BLUE{background:radial-gradient(circle at 35% 28%,#63b6dd,var(--blue) 58%,var(--blue-d))}
+.pc:hover{filter:brightness(1.15)}
+.pc svg{width:66%;height:66%;pointer-events:none}
+.pc .hero{position:absolute;top:-8px;right:-5px;font-size:11px;color:#ffd666;text-shadow:0 0 3px #000}
+.pc .car{position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);width:62%;height:4px;border-radius:2px;background:#ffd666;box-shadow:0 0 4px rgba(0,0,0,.6)}
+.pc.sel{box-shadow:0 0 0 3px #ffd666,0 5px 8px rgba(0,0,0,.5)}
+.mk{position:absolute;border-radius:50%;pointer-events:none;background:rgba(255,214,102,.75);box-shadow:0 0 8px rgba(255,214,102,.9)}
+.mk.cap{background:rgba(226,72,52,.8);box-shadow:0 0 9px rgba(226,72,52,.95)}
+.lm{position:absolute;border-radius:50%;pointer-events:none;border:2px solid rgba(255,214,102,.6)}
+.side{display:flex;flex-direction:column;gap:12px}
+.pnl{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px}
+.pnl h2{margin:0 0 9px;font-size:12px;letter-spacing:1.1px;text-transform:uppercase;color:var(--gold)}
+.pnl .note{font-size:11.6px;line-height:1.55;color:var(--dim)}
+.col{display:flex;flex-direction:column;gap:6px}
+.cap{display:flex;flex-wrap:wrap;gap:4px;min-height:22px}
+.cap span{width:21px;height:21px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:bold;color:#fff}
+.cap span.RED{background:var(--red)}.cap span.BLUE{background:var(--blue)}
+.log{max-height:140px;overflow-y:auto;font-size:11.8px;line-height:1.65;color:var(--dim)}
+.log div{padding:1px 0;border-bottom:1px dashed rgba(255,255,255,.06)}
+.leg{display:grid;grid-template-columns:1fr 1fr;gap:5px 8px;font-size:11px;color:var(--dim)}
+.leg div{display:flex;align-items:center;gap:5px}
+.leg i{width:19px;height:19px;border-radius:50%;background:#4a5a4a;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.leg i svg{width:12px;height:12px}
+select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:3px;padding:5px;font-family:inherit;font-size:12.5px;width:100%}
+.mb{position:fixed;inset:0;background:rgba(5,8,5,.75);display:none;align-items:center;justify-content:center;z-index:50;padding:18px}
+.mb.on{display:flex}
+.md{background:var(--panel);border:1px solid var(--gold);border-radius:8px;max-width:600px;width:100%;max-height:84vh;overflow-y:auto;padding:20px}
+.md h3{margin-top:0;color:var(--gold)}
+.md h4{color:var(--ink);font-size:13px;margin:14px 0 5px}
+.md p,.md li{font-size:12.6px;line-height:1.6;color:var(--dim)}
+.md ul{padding-left:17px;margin:4px 0}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#20291f;border:1px solid var(--gold);padding:9px 18px;border-radius:4px;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:60}
+.toast.on{opacity:1}
+.over{position:fixed;inset:0;background:rgba(4,6,4,.85);display:none;align-items:center;justify-content:center;z-index:70}
+.over.on{display:flex}
+.over div.c{background:var(--panel);border:1px solid var(--gold);border-radius:10px;padding:30px 36px;text-align:center}
+.over h2{color:var(--gold);margin:0 0 6px}
+.over p{color:var(--dim);margin:0 0 16px;font-size:13px}
+footer{text-align:center;font-size:10.5px;color:var(--dim);margin-top:20px}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div>
+    <h1>CỜ TƯ LỆNH</h1>
+    <div class="sub">Bàn cờ 11×12 điểm · dựng theo đúng sơ đồ bạn cung cấp</div>
+  </div>
+  <div class="tools">
+    <button class="b" id="bRules">Luật chơi</button>
+    <button class="b" id="bFlat">Xem phẳng</button>
+    <button class="b" id="bUndo">Đi lại</button>
+    <button class="b p" id="bNew">Ván mới</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="boardbox">
+    <div class="bar">
+      <div class="chip"><span class="dot RED" id="dot"></span><span id="turnTxt">Lượt: Đỏ</span></div>
+      <div class="warn" id="warn">TƯ LỆNH BỊ CHIẾU!</div>
+      <div class="chip" id="modeTxt">2 người · 1 máy</div>
+    </div>
+    <div class="scene"><div id="stage"><div id="terrain"></div></div></div>
+  </div>
+
+  <div class="side">
+    <div class="pnl">
+      <h2>Chế độ</h2>
+      <div class="col">
+        <button class="b on" id="mLocal">👥 2 người cùng máy</button>
+        <button class="b" id="mAI">🤖 Đấu với máy</button>
+      </div>
+      <div id="aiBox" style="display:none;margin-top:8px" class="col">
+        <select id="lvl"><option value="1">Dễ</option><option value="2" selected>Trung bình</option><option value="3">Khó</option></select>
+        <div style="display:flex;gap:6px">
+          <button class="b sm on" id="sRed" style="flex:1">Cầm Đỏ</button>
+          <button class="b sm" id="sBlue" style="flex:1">Cầm Xanh</button>
+        </div>
+      </div>
+    </div>
+    <div class="pnl">
+      <h2>Quân bị bắt</h2>
+      <div class="note" style="margin-bottom:3px">Đỏ mất:</div><div class="cap" id="lostR"></div>
+      <div class="note" style="margin:7px 0 3px">Xanh mất:</div><div class="cap" id="lostB"></div>
+    </div>
+    <div class="pnl"><h2>Biên bản</h2><div class="log" id="log"></div></div>
+    <div class="pnl"><h2>Ký hiệu</h2><div class="leg" id="leg"></div></div>
+    <div class="pnl">
+      <h2>Online &amp; đăng nhập</h2>
+      <div class="note">Đăng nhập Google và đấu online qua ID bạn bè cần một máy chủ riêng chạy liên tục, nên không thể chạy trong một trang web độc lập như thế này. Hai chế độ offline ở trên chơi được ngay.</div>
+    </div>
+  </div>
+</div>
+<footer>Sơ đồ bàn cờ, vị trí và chủng loại 38 quân được đọc trực tiếp từ ảnh bạn gửi (phân tích từng điểm ảnh).</footer>
+</div>
+
+<div class="mb" id="rules"><div class="md">
+  <h3>Luật chơi</h3>
+  <h4>Bàn cờ</h4>
+  <p>11 đường dọc (cột 0–10) × 12 đường ngang (hàng 0–11). Quân đứng trên <b>giao điểm</b>. Dải <b>biển</b> nằm bên trái (cột 0–2). Dải <b>sông</b> cắt ngang giữa hàng 5 và hàng 6, có 2 chỗ <b>ngầm</b> ở cột 5 và cột 7.</p>
+  <h4>Đội hình mỗi bên (19 quân)</h4>
+  <p>1 Tư lệnh · 2 Tàu chiến · 2 Không quân · 2 Cao xạ · 3 Tên lửa · 2 Pháo binh · 2 Xe tăng · 2 Bộ binh · 2 Công binh · 1 Dân quân.</p>
+  <h4>Cách đi từng quân</h4>
+  <ul id="ruleList"></ul>
+  <h4>Sông &amp; biển</h4>
+  <ul>
+    <li>Qua sông tự do tại <b>cột ngầm 5 và 7</b>. Ngoài hai cột đó, chỉ Tư lệnh, Bộ binh, Công binh, Dân quân, Xe tăng và Không quân vượt được; Cao xạ, Tên lửa, Pháo binh phải nhờ Công binh cõng.</li>
+    <li>Chỉ Tàu chiến hoạt động trong lòng biển (cột 0–1). Cột 2 là bờ, cả hai loại đều đứng được.</li>
+  </ul>
+  <h4>Quy tắc riêng</h4>
+  <ul>
+    <li><b>Cõng quân</b>: Tư lệnh, Bộ binh, Dân quân bước vào ô quân bạn là Xe tăng / Công binh / Tàu chiến / Không quân để được cõng. Lượt sau chọn: đi cả cụm theo luật quân cõng, hoặc cho quân ngồi trên tách ra đi riêng.</li>
+    <li><b>Bắn tại chỗ</b>: Tàu chiến, Pháo binh, Xe tăng bắn mục tiêu trong tầm mà không cần rời vị trí.</li>
+    <li><b>Vùng cấm bay</b>: Cao xạ phủ bán kính 1, Tên lửa phủ 2 ô theo trục và 1 ô chéo. Không quân bay vào đó sẽ bị bắn rơi (nước đi không hợp lệ), trừ khi chính nó tấn công trận địa đó — khi ấy hai bên cùng bị tiêu diệt.</li>
+    <li><b>Quân anh hùng</b> ★: quân nào chiếu được Tư lệnh đối phương sẽ được tăng 1 tầm đi.</li>
+    <li>Hai Tư lệnh không được nhìn thẳng mặt nhau trên cùng một đường trống.</li>
+  </ul>
+  <div style="text-align:right;margin-top:14px"><button class="b p" id="bClose">Đóng</button></div>
+</div></div>
+
+<div class="over" id="over"><div class="c">
+  <h2 id="ovT"></h2><p id="ovP"></p>
+  <button class="b p" id="ovB">Ván mới</button>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ===== board geometry (read from the reference image) ===== */
+const ROWS=12, COLS=11, SP=42, MG=28;
+const SEA_MAX=1;      // cols 0..1 = open sea (navy only)
+const SHORE=2;        // col 2 = shoreline, everyone allowed
+const FORDS=[5,7];    // river crossings open to all
+const RIVER_LO=5, RIVER_HI=6;   // river runs between these two rows
+
+const T={
+  CMD :{n:"Tư lệnh",     c:"TL",v:10000},
+  NAVY:{n:"Tàu chiến",   c:"TC",v:80},
+  AIR :{n:"Không quân",  c:"KQ",v:45},
+  ART :{n:"Pháo binh",   c:"PB",v:32},
+  SAM :{n:"Tên lửa",     c:"TL",v:24},
+  TANK:{n:"Xe tăng",     c:"XT",v:22},
+  AA  :{n:"Cao xạ",      c:"CX",v:14},
+  ENG :{n:"Công binh",   c:"CB",v:12},
+  INF :{n:"Bộ binh",     c:"BB",v:11},
+  MIL :{n:"Dân quân",    c:"DQ",v:11},
+};
+const LIGHT=["CMD","INF","ENG","MIL","TANK"];   // may ford the deep river unaided
+const CARRIER=["TANK","ENG","NAVY","AIR"];
+const RIDER=["CMD","INF","MIL"];
+
+const ORTHO=[[1,0],[-1,0],[0,1],[0,-1]];
+const DIAG=[[1,1],[1,-1],[-1,1],[-1,-1]];
+const ALL8=ORTHO.concat(DIAG);
+
+/* Red's 19 pieces, exactly as positioned in the reference diagram [col,row] */
+const RED_SETUP=[
+  ["CMD",6,0],
+  ["NAVY",1,1],["AIR",4,1],["AA",5,1],["AA",7,1],["AIR",8,1],
+  ["SAM",3,2],["SAM",6,2],["SAM",9,2],
+  ["NAVY",2,3],["ART",4,3],["TANK",5,3],["TANK",7,3],["ART",8,3],
+  ["INF",2,4],["ENG",3,4],["MIL",6,4],["ENG",9,4],["INF",10,4],
+];
+
+let bd,turn,mode="local",human="RED",depth=3,sel=null,moves=[],log=[],
+    lostR=[],lostB=[],last=null,over=false,warnSide=null,history=[];
+
+const K=(r,c)=>r+","+c;
+const inB=(r,c)=>r>=0&&r<ROWS&&c>=0&&c<COLS;
+const at=(r,c)=>bd[K(r,c)];
+const foe=(p,s)=>p&&p.side!==s;
+
+function setup(){
+  bd={};
+  for(const [t,c,r] of RED_SETUP){
+    bd[K(r,c)]={type:t,side:"RED",hero:false,r,c};
+    const mr=ROWS-1-r;
+    bd[K(mr,c)]={type:t,side:"BLUE",hero:false,r:mr,c};
+  }
+  turn="RED";sel=null;moves=[];log=[];lostR=[];lostB=[];last=null;over=false;warnSide=null;history=[];
+}
+
+/* ===== terrain ===== */
+function canStand(t,r,c){
+  if(!inB(r,c))return false;
+  if(c<=SEA_MAX) return t==="NAVY"||t==="AIR";
+  return true;                       // col 2+ open to all, navy included (shoreline)
+}
+function navyOk(c){ return c<=SHORE; }
+function standOk(t,r,c){
+  if(!canStand(t,r,c))return false;
+  if(t==="NAVY"&&!navyOk(c))return false;
+  return true;
+}
+// does stepping (r1,c1)->(r2,c2) cross the river, and may this piece do it here?
+function crossOk(t,r1,c1,r2,c2){
+  const crosses=(r1<=RIVER_LO&&r2>=RIVER_HI)||(r1>=RIVER_HI&&r2<=RIVER_LO);
+  if(!crosses)return true;
+  if(t==="AIR"||t==="NAVY")return true;
+  if(LIGHT.includes(t))return true;
+  // heavy units only ford straight up a ford column
+  return c1===c2&&FORDS.includes(c2);
+}
+
+/* ===== air-defence coverage owned by the enemy of `side` ===== */
+function adZone(side){
+  const z=new Set();
+  for(const p of Object.values(bd)){
+    if(p.side===side)continue;
+    if(p.type==="AA"){
+      z.add(K(p.r,p.c));
+      for(const [a,b] of ALL8) if(inB(p.r+a,p.c+b)) z.add(K(p.r+a,p.c+b));
+    }
+    if(p.type==="SAM"){
+      z.add(K(p.r,p.c));
+      for(const [a,b] of ORTHO) for(let s=1;s<=2;s++) if(inB(p.r+a*s,p.c+b*s)) z.add(K(p.r+a*s,p.c+b*s));
+      for(const [a,b] of DIAG) if(inB(p.r+a,p.c+b)) z.add(K(p.r+a,p.c+b));
+    }
+  }
+  return z;
+}
+
+/* ===== generic slider ===== */
+function slide(p,dirs,max){
+  const out=[];
+  for(const [dr,dc] of dirs){
+    let pr=p.r,pc=p.c;
+    for(let s=1;s<=max;s++){
+      const r=p.r+dr*s,c=p.c+dc*s;
+      if(!inB(r,c))break;
+      if(!crossOk(p.type,pr,pc,r,c))break;
+      const o=at(r,c);
+      if(!o){ if(standOk(p.type,r,c))out.push({r,c}); else break; }
+      else { if(foe(o,p.side)&&standOk(p.type,r,c))out.push({r,c,cap:o}); break; }
+      pr=r;pc=c;
+    }
+  }
+  return out;
+}
+/* fire without moving */
+function fire(p,dirs,max,pred){
+  const out=[];
+  for(const [dr,dc] of dirs){
+    for(let s=1;s<=max;s++){
+      const r=p.r+dr*s,c=p.c+dc*s;
+      if(!inB(r,c))break;
+      const o=at(r,c);
+      if(o){ if(foe(o,p.side)&&(!pred||pred(o,r,c))) out.push({r:p.r,c:p.c,cap:o,tr:r,tc:c,stay:true}); break; }
+    }
+  }
+  return out;
+}
+
+function gen(p){
+  const h=p.hero?1:0;
+  switch(p.type){
+    case "CMD":{
+      const out=[];
+      for(const [dr,dc] of ORTHO){
+        let pr=p.r,pc=p.c;
+        for(let s=1;s<ROWS+COLS;s++){
+          const r=p.r+dr*s,c=p.c+dc*s;
+          if(!inB(r,c))break;
+          if(!crossOk("CMD",pr,pc,r,c))break;
+          const o=at(r,c);
+          if(!o){ if(standOk("CMD",r,c))out.push({r,c}); else break; }
+          else { if(s===1&&foe(o,p.side))out.push({r,c,cap:o}); break; }
+          pr=r;pc=c;
+        }
+      }
+      return out.filter(m=>!faceOff(p,m));
+    }
+    case "INF": return slide(p,p.hero?ALL8:ORTHO,1+h);
+    case "ENG": return slide(p,p.hero?ALL8:ORTHO,1+h);
+    case "AA":  return slide(p,p.hero?ALL8:ORTHO,1+h);
+    case "MIL": return slide(p,ALL8,1+h);
+    case "TANK":return slide(p,ORTHO,2+h)
+      .concat(fire(p,ORTHO,2+h,(o,r,c)=>c<=SEA_MAX));
+    case "SAM": return slide(p,ORTHO,2+h).concat(slide(p,DIAG,1+h));
+    case "ART": {
+      const R=3+h,out=[];
+      for(const [dr,dc] of ALL8){
+        let pr=p.r,pc=p.c;
+        for(let s=1;s<=R;s++){          // quiet moves only over empty points
+          const r=p.r+dr*s,c=p.c+dc*s;
+          if(!inB(r,c)||at(r,c))break;
+          if(!crossOk("ART",pr,pc,r,c))break;
+          if(standOk("ART",r,c))out.push({r,c});
+          pr=r;pc=c;
+        }
+        let screen=false;                // then cannon-style capture over one screen
+        for(let s=1;s<=R+3;s++){
+          const r=p.r+dr*s,c=p.c+dc*s;
+          if(!inB(r,c))break;
+          const o=at(r,c);
+          if(!screen){ if(o)screen=true; continue; }
+          if(o){ if(foe(o,p.side)&&s<=R) out.push({r:p.r,c:p.c,cap:o,tr:r,tc:c,stay:true}); break; }
+        }
+      }
+      return out;
+    }
+    case "AIR": {
+      const R=4+h,Z=adZone(p.side),out=[];
+      for(const [dr,dc] of ALL8){
+        let shot=false;                 // once inside enemy cover it may only strike the battery
+        for(let s=1;s<=R;s++){
+          const r=p.r+dr*s,c=p.c+dc*s;
+          if(!inB(r,c))break;
+          const o=at(r,c),inZ=Z.has(K(r,c));
+          if(!o){ if(inZ)shot=true; else if(!shot&&standOk("AIR",r,c))out.push({r,c}); continue; }
+          if(foe(o,p.side)){
+            if(o.type==="AA"||o.type==="SAM") out.push({r,c,cap:o,trade:true});
+            else if(!inZ&&!shot){ out.push({r,c,cap:o}); out.push({r:p.r,c:p.c,cap:o,tr:r,tc:c,stay:true}); }
+          }
+          break;
+        }
+      }
+      return out;
+    }
+    case "NAVY": {
+      const out=[];
+      for(const [dr,dc] of ORTHO){      // sails inside the sea strip
+        for(let s=1;s<ROWS;s++){
+          const r=p.r+dr*s,c=p.c+dc*s;
+          if(!inB(r,c)||!navyOk(c))break;
+          const o=at(r,c);
+          if(!o)out.push({r,c});
+          else {if(foe(o,p.side))out.push({r,c,cap:o});break;}
+        }
+      }
+      return out.concat(fire(p,ALL8,4+h));   // naval guns reach inland
+    }
+  }
+  return [];
+}
+
+function cmdOf(s){ return Object.values(bd).find(p=>p.type==="CMD"&&p.side===s); }
+
+function faceOff(p,m){
+  const e=cmdOf(p.side==="RED"?"BLUE":"RED");
+  if(!e)return false;
+  if(m.r!==e.r&&m.c!==e.c)return false;
+  const a=K(p.r,p.c),b=K(m.r,m.c),sa=bd[a],sb=bd[b];
+  delete bd[a]; bd[b]={...p,r:m.r,c:m.c};
+  let blocked=false;
+  if(m.r===e.r){const lo=Math.min(m.c,e.c),hi=Math.max(m.c,e.c);for(let c=lo+1;c<hi;c++)if(at(m.r,c)){blocked=true;break;}}
+  else {const lo=Math.min(m.r,e.r),hi=Math.max(m.r,e.r);for(let r=lo+1;r<hi;r++)if(at(r,m.c)){blocked=true;break;}}
+  bd[a]=sa; if(sb)bd[b]=sb; else delete bd[b];
+  return !blocked;
+}
+
+function legal(side){
+  const out=[];
+  for(const p of Object.values(bd)){
+    if(p.side!==side)continue;
+    for(const m of gen(p)) out.push({from:{r:p.r,c:p.c},...m,pt:p.type});
+    if(p.rider){   // the passenger may hop off and move on its own
+      const v={type:p.rider.type,side:p.side,hero:p.rider.hero,r:p.r,c:p.c};
+      for(const m of gen(v)) out.push({from:{r:p.r,c:p.c},...m,pt:v.type,off:true});
+    }
+  }
+  for(const p of Object.values(bd)){   // board a friendly carrier
+    if(p.side!==side||!RIDER.includes(p.type)||p.rider)continue;
+    for(const [dr,dc] of (p.type==="MIL"?ALL8:ORTHO)){
+      const r=p.r+dr,c=p.c+dc;
+      if(!inB(r,c))continue;
+      const o=at(r,c);
+      if(o&&o.side===side&&CARRIER.includes(o.type)&&!o.rider)
+        out.push({from:{r:p.r,c:p.c},r,c,pt:p.type,ride:true});
+    }
+  }
+  return out;
+}
+
+/* ===== apply ===== */
+function take(p){ if(!p)return; (p.side==="BLUE"?lostB:lostR).push(p.type); }
+
+function play(m,quiet){
+  if(!quiet)history.push({bd:JSON.parse(JSON.stringify(bd)),turn,log:log.slice(),lostR:lostR.slice(),lostB:lostB.slice(),last});
+  const fk=K(m.from.r,m.from.c), mv=bd[fk];
+  if(!mv)return;
+  let got=null, actor=null;
+
+  if(m.ride){
+    const car=at(m.r,m.c);
+    car.rider={type:mv.type,side:mv.side,hero:mv.hero};
+    delete bd[fk]; actor=car;
+    note(m,mv.type,null,"lên xe");
+  } else if(m.off){
+    const host=at(m.from.r,m.from.c), rd=host.rider;
+    delete host.rider;
+    if(m.cap){got={...m.cap};take(got);delete bd[K(m.r,m.c)];}
+    bd[K(m.r,m.c)]={type:rd.type,side:rd.side,hero:rd.hero,r:m.r,c:m.c};
+    actor=bd[K(m.r,m.c)];
+    note(m,rd.type,got,"xuống xe");
+  } else if(m.stay){
+    got={...m.cap};take(got);
+    const tgt=at(m.tr,m.tc);
+    if(tgt&&tgt.rider&&tgt.type!==m.cap.type) delete tgt.rider; else delete bd[K(m.tr,m.tc)];
+    actor=mv;
+    note(m,mv.type,got,"bắn tại chỗ");
+  } else if(m.trade){
+    got={...m.cap};take(got);
+    take({...mv,side:mv.side});
+    delete bd[K(m.r,m.c)];delete bd[fk];
+    note(m,mv.type,got,"đổi mạng");
+  } else {
+    if(m.cap){
+      const d=at(m.r,m.c);
+      if(d&&d.rider){ got={...d.rider,side:d.side}; take(got); delete d.rider; note(m,mv.type,got,"hạ lính trên xe"); play._skip=true; }
+      else { got={...m.cap}; take(got); }
+    }
+    if(!play._skip){
+      delete bd[fk];
+      const np={type:mv.type,side:mv.side,hero:mv.hero,r:m.r,c:m.c};
+      if(mv.rider)np.rider=mv.rider;
+      bd[K(m.r,m.c)]=np; actor=np;
+      note(m,mv.type,got,null);
+    }
+    play._skip=false;
+  }
+
+  last={a:m.from,b:{r:m.r,c:m.c}};
+
+  if(actor&&!actor.hero){         // promote whoever now attacks the enemy commander
+    if(gen(actor).some(x=>x.cap&&x.cap.type==="CMD")){
+      actor.hero=true;
+      if(!quiet)toast((actor.side==="RED"?"Đỏ":"Xanh")+": "+T[actor.type].n+" thành quân ANH HÙNG ★");
+    }
+  }
+
+  if(!cmdOf("RED")) return finish("BLUE","Tư lệnh Đỏ đã bị bắt.");
+  if(!cmdOf("BLUE")) return finish("RED","Tư lệnh Xanh đã bị bắt.");
+
+  turn = turn==="RED"?"BLUE":"RED";
+  if(!legal(turn).length) return finish(turn==="RED"?"BLUE":"RED","Bên "+(turn==="RED"?"Đỏ":"Xanh")+" hết nước đi.");
+
+  warnSide = legal(turn==="RED"?"BLUE":"RED").some(x=>x.cap&&x.cap.type==="CMD")?turn:null;
+  if(!quiet){ draw(); setTimeout(aiTurn,60); }
+}
+
+function note(m,t,got,tag){
+  let s=(log.length+1)+". "+(turn==="RED"?"Đỏ":"Xanh")+" "+T[t].n+" "+m.from.c+","+m.from.r+"→"+(m.tc??m.c)+","+(m.tr??m.r);
+  if(got)s+=" (ăn "+T[got.type].n+")";
+  if(tag)s+=" ["+tag+"]";
+  log.push(s);
+}
+function finish(w,why){
+  over=true;
+  document.getElementById('ovT').textContent=(w==="RED"?"ĐỎ":"XANH")+" THẮNG";
+  document.getElementById('ovP').textContent=why;
+  document.getElementById('over').classList.add('on');
+  draw();
+}
+
+/* ===== icons ===== */
+const ICON={
+CMD:'<svg viewBox="0 0 24 24"><path fill="#fff" d="M12 2l2.5 6.6 7-.3-5.6 4.3 2.1 6.8L12 15.6 6 19.4l2.1-6.8L2.5 8.3l7 .3z"/></svg>',
+NAVY:'<svg viewBox="0 0 24 24"><path fill="#fff" d="M2 16h20l-2.5 5H4.5zM11 3h2v4h4l-1 6H8L7 7h4z"/><circle cx="12" cy="2" r="1.4" fill="#fff"/></svg>',
+AIR:'<svg viewBox="0 0 24 24"><path fill="#fff" d="M12 2c.8 0 1.4 1.4 1.5 3.4L22 11v2l-8.4-1.6v4.4l2.6 2v1.8L12 18.6l-4.2 1h0v-1.8l2.6-2v-4.4L2 13v-2l8.5-5.6C10.6 3.4 11.2 2 12 2z"/></svg>',
+ART:'<svg viewBox="0 0 24 24"><rect x="1.5" y="15" width="8" height="5" rx="1.4" fill="#fff"/><path d="M6.5 16.5L21.5 5.5" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/><circle cx="5" cy="20.5" r="2" fill="#fff"/></svg>',
+SAM:'<svg viewBox="0 0 24 24"><path fill="#fff" d="M12 1.5c1.9 2.3 2.9 5.3 2.9 8.4v5.6h-5.8V9.9c0-3.1 1-6.1 2.9-8.4z"/><path fill="#fff" d="M9.1 12.5L5.5 18h3.6zM14.9 12.5L18.5 18h-3.6zM9.6 17h4.8l-2.4 5.3z"/></svg>',
+TANK:'<svg viewBox="0 0 24 24"><rect x="1.5" y="14" width="21" height="6" rx="3" fill="#fff"/><path fill="#fff" d="M6 9.5c0-1.7 1.6-3 4-3h3c2.4 0 4 1.3 4 3v3.5H6z"/><rect x="14" y="8.4" width="9" height="2.2" rx="1.1" fill="#fff"/></svg>',
+AA:'<svg viewBox="0 0 24 24"><rect x="4" y="15" width="16" height="5" rx="1.6" fill="#fff"/><rect x="7.5" y="4" width="2.4" height="11" rx="1.2" fill="#fff" transform="rotate(-14 8.7 9.5)"/><rect x="14.1" y="4" width="2.4" height="11" rx="1.2" fill="#fff" transform="rotate(14 15.3 9.5)"/></svg>',
+ENG:'<svg viewBox="0 0 24 24"><path fill="#fff" d="M2 11a10 10 0 0 1 20 0v1.4H2z"/><rect x="2" y="15" width="20" height="2.2" fill="#fff"/><rect x="5" y="17.2" width="2" height="3.6" fill="#fff"/><rect x="11" y="17.2" width="2" height="3.6" fill="#fff"/><rect x="17" y="17.2" width="2" height="3.6" fill="#fff"/></svg>',
+INF:'<svg viewBox="0 0 24 24"><path fill="#fff" d="M4.5 10.5a7.5 7.5 0 0 1 15 0v1.2h-15z"/><circle cx="12" cy="6.4" r="1.7" fill="#fff"/><path fill="#fff" d="M3 14h18v2.2H3z"/><path fill="#fff" d="M8 17h8l-1.6 4h-4.8z"/></svg>',
+MIL:'<svg viewBox="0 0 24 24"><path fill="#fff" d="M12 2.5c3.3 0 5.4 2.3 5.4 5.6 0 1.4-.3 2.6-.8 3.6l1.2 1.1-1.5 1.3.9 1.2-2.4 2.1.5 3.1H8.7l.5-3.1-2.4-2.1.9-1.2-1.5-1.3 1.2-1.1c-.5-1-.8-2.2-.8-3.6 0-3.3 2.1-5.6 5.4-5.6z"/></svg>',
+};
+
+/* ===== rendering ===== */
+const stage=document.getElementById('stage'), terr=document.getElementById('terrain');
+const X=c=>MG+c*SP, Y=r=>MG+(ROWS-1-r)*SP;
+const W=MG*2+(COLS-1)*SP, H=MG*2+(ROWS-1)*SP;
+
+function terrainSVG(){
+  const riverTop=Y(RIVER_HI), riverBot=Y(RIVER_LO);
+  let s=`<svg width="${W}" height="${H}" style="display:block">`;
+  s+=`<rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/>`;
+  s+=`<rect x="${X(0)-MG/2}" y="0" width="${X(SHORE)-X(0)+MG/2}" height="${H}" fill="var(--sea)"/>`;
+  s+=`<rect x="0" y="${riverTop}" width="${W}" height="${riverBot-riverTop}" fill="var(--sea)"/>`;
+  for(const f of FORDS){                    // ford markings
+    s+=`<g stroke="#9a8464" stroke-width="2.4" stroke-linecap="round" opacity=".85">`;
+    for(let i=0;i<5;i++){
+      const fx=X(f)-9+Math.random()*0, ox=[-7,2,-2,8,4][i], oy=riverTop+5+i*((riverBot-riverTop-10)/4);
+      s+=`<line x1="${fx+ox}" y1="${oy}" x2="${fx+ox+3}" y2="${oy+7}"/>`;
+    }
+    s+=`</g>`;
+  }
+  s+=`<g stroke="var(--grid)" stroke-width="1.6">`;
+  for(let c=0;c<COLS;c++) s+=`<line x1="${X(c)}" y1="${Y(ROWS-1)}" x2="${X(c)}" y2="${Y(0)}"/>`;
+  for(let r=0;r<ROWS;r++) s+=`<line x1="${X(0)}" y1="${Y(r)}" x2="${X(COLS-1)}" y2="${Y(r)}"/>`;
+  s+=`</g>`;
+  s+=`<rect x="${X(0)-MG/2}" y="${Y(ROWS-1)-MG/2}" width="${(COLS-1)*SP+MG}" height="${(ROWS-1)*SP+MG}" fill="none" stroke="var(--frame)" stroke-width="3"/>`;
+  s+=`<g fill="#6b6b5e" font-size="10" font-family="Georgia">`;
+  for(let c=0;c<COLS;c++) s+=`<text x="${X(c)-3}" y="${H-4}">${c}</text>`;
+  for(let r=0;r<ROWS;r++) s+=`<text x="2" y="${Y(r)+4}">${r}</text>`;
+  s+=`</g></svg>`;
+  return s;
+}
+
+function draw(){
+  stage.style.width=W+"px"; stage.style.height=H+"px";
+  terr.innerHTML=terrainSVG();
+  [...stage.querySelectorAll('.pc,.mk,.lm')].forEach(e=>e.remove());
+  const D=SP*0.78, tilt=stage.classList.contains('flat')?0:46;
+
+  if(last){
+    for(const q of [last.a,last.b]){
+      const d=document.createElement('div');
+      d.className='lm';
+      d.style.cssText=`left:${X(q.c)-D/2}px;top:${Y(q.r)-D/2}px;width:${D}px;height:${D}px`;
+      stage.appendChild(d);
+    }
+  }
+  for(const p of Object.values(bd)){
+    const e=document.createElement('div');
+    e.className='pc '+p.side+(sel&&sel.r===p.r&&sel.c===p.c?' sel':'');
+    e.style.cssText=`left:${X(p.c)-D/2}px;top:${Y(p.r)-D/2}px;width:${D}px;height:${D}px;transform:rotateX(-${tilt}deg) translateZ(8px)`;
+    e.innerHTML=ICON[p.type]+(p.hero?'<span class="hero">★</span>':'')+(p.rider?'<span class="car"></span>':'');
+    e.title=T[p.type].n+(p.hero?" ★":"")+(p.rider?" (cõng "+T[p.rider.type].n+")":"");
+    e.onclick=ev=>{ev.stopPropagation();tap(p.r,p.c);};
+    stage.appendChild(e);
+  }
+  for(const m of moves){
+    const d=document.createElement('div'), s=m.cap?D*0.5:D*0.34;
+    const tr=m.tr??m.r, tc=m.tc??m.c;
+    d.className='mk'+(m.cap?' cap':'');
+    d.style.cssText=`left:${X(tc)-s/2}px;top:${Y(tr)-s/2}px;width:${s}px;height:${s}px;transform:translateZ(4px)`;
+    stage.appendChild(d);
+    const hit=document.createElement('div');
+    hit.className='pc';
+    hit.style.cssText=`left:${X(m.c)-D/2}px;top:${Y(m.r)-D/2}px;width:${D}px;height:${D}px;background:none;border:none;box-shadow:none`;
+    hit.onclick=ev=>{ev.stopPropagation();play(m);};
+    stage.appendChild(hit);
+  }
+
+  document.getElementById('turnTxt').textContent="Lượt: "+(turn==="RED"?"Đỏ":"Xanh");
+  document.getElementById('dot').className="dot "+turn;
+  const w=document.getElementById('warn');
+  if(warnSide){w.classList.add('on');w.textContent="TƯ LỆNH "+(warnSide==="RED"?"ĐỎ":"XANH")+" BỊ CHIẾU!";}
+  else w.classList.remove('on');
+  const cap=(el,arr,cls)=>{el.innerHTML=arr.map(t=>`<span class="${cls}">${T[t].c}</span>`).join("");};
+  cap(document.getElementById('lostR'),lostR,'RED');
+  cap(document.getElementById('lostB'),lostB,'BLUE');
+  document.getElementById('log').innerHTML=log.slice().reverse().map(x=>`<div>${x}</div>`).join("");
+}
+
+function tap(r,c){
+  if(over)return;
+  if(mode==="ai"&&turn!==human)return;
+  if(sel){
+    const m=moves.find(x=>x.r===r&&x.c===c);
+    if(m){sel=null;moves=[];play(m);return;}
+  }
+  const p=at(r,c);
+  if(p&&p.side===turn){ sel={r,c}; moves=legal(turn).filter(m=>m.from.r===r&&m.from.c===c); }
+  else { sel=null; moves=[]; }
+  draw();
+}
+stage.onclick=()=>{sel=null;moves=[];draw();};
+
+/* ===== AI ===== */
+const score=()=>{let s=0;for(const p of Object.values(bd)){let v=T[p.type].v+(p.hero?8:0);if(p.rider)v+=T[p.rider.type].v*.6;s+=(p.side==="RED"?1:-1)*v;}return s;};
+function ab(d,side,al,be){
+  if(!cmdOf("RED"))return -1e6-d;
+  if(!cmdOf("BLUE"))return 1e6+d;
+  if(d<=0)return score();
+  const ms=legal(side); if(!ms.length)return score();
+  if(side==="RED"){let v=-Infinity;for(const m of ms){const s=JSON.stringify(bd);sim(m);v=Math.max(v,ab(d-1,"BLUE",al,be));bd=JSON.parse(s);al=Math.max(al,v);if(al>=be)break;}return v;}
+  let v=Infinity;for(const m of ms){const s=JSON.stringify(bd);sim(m);v=Math.min(v,ab(d-1,"RED",al,be));bd=JSON.parse(s);be=Math.min(be,v);if(al>=be)break;}return v;
+}
+function sim(m){
+  const fk=K(m.from.r,m.from.c),mv=bd[fk]; if(!mv)return;
+  if(m.ride){const c2=at(m.r,m.c);c2.rider={type:mv.type,side:mv.side,hero:mv.hero};delete bd[fk];return;}
+  if(m.off){const h=at(m.from.r,m.from.c),rd=h.rider;delete h.rider;if(m.cap)delete bd[K(m.r,m.c)];bd[K(m.r,m.c)]={type:rd.type,side:rd.side,hero:rd.hero,r:m.r,c:m.c};return;}
+  if(m.stay){const t=at(m.tr,m.tc);if(t&&t.rider&&t.type!==m.cap.type)delete t.rider;else delete bd[K(m.tr,m.tc)];return;}
+  if(m.trade){delete bd[K(m.r,m.c)];delete bd[fk];return;}
+  const d=at(m.r,m.c);
+  if(m.cap&&d&&d.rider){delete d.rider;return;}
+  delete bd[fk];
+  const np={type:mv.type,side:mv.side,hero:mv.hero,r:m.r,c:m.c};
+  if(mv.rider)np.rider=mv.rider;
+  bd[K(m.r,m.c)]=np;
+}
+function aiTurn(){
+  if(mode!=="ai"||over||turn===human)return;
+  const ms=legal(turn); if(!ms.length)return;
+  let best=null,bs=turn==="RED"?-Infinity:Infinity;
+  for(const m of ms.sort(()=>Math.random()-.5)){
+    const s=JSON.stringify(bd); sim(m);
+    const v=ab(depth-1,turn==="RED"?"BLUE":"RED",-Infinity,Infinity)+Math.random()*.4;
+    bd=JSON.parse(s);
+    if(turn==="RED"?v>bs:v<bs){bs=v;best=m;}
+  }
+  if(best)play(best);
+}
+
+/* ===== ui ===== */
+let tt;
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('on'),2400);}
+const $=id=>document.getElementById(id);
+function reset(){setup();draw();if(mode==="ai"&&human==="BLUE")setTimeout(aiTurn,300);}
+$('bNew').onclick=reset;
+$('ovB').onclick=()=>{$('over').classList.remove('on');reset();};
+$('bFlat').onclick=()=>{stage.classList.toggle('flat');draw();};
+$('bRules').onclick=()=>$('rules').classList.add('on');
+$('bClose').onclick=()=>$('rules').classList.remove('on');
+$('bUndo').onclick=()=>{
+  if(!history.length)return;
+  let n=(mode==="ai"&&history.length>1)?2:1;
+  let s; while(n-->0&&history.length)s=history.pop();
+  bd=s.bd;turn=s.turn;log=s.log;lostR=s.lostR;lostB=s.lostB;last=s.last;
+  over=false;sel=null;moves=[];warnSide=null;$('over').classList.remove('on');draw();
+};
+$('mLocal').onclick=()=>{mode="local";$('mLocal').classList.add('on');$('mAI').classList.remove('on');
+  $('aiBox').style.display='none';$('modeTxt').textContent="2 người · 1 máy";reset();};
+$('mAI').onclick=()=>{mode="ai";$('mAI').classList.add('on');$('mLocal').classList.remove('on');
+  $('aiBox').style.display='flex';$('modeTxt').textContent="Đấu với máy";reset();};
+$('lvl').onchange=e=>{depth=+e.target.value+1;};
+$('sRed').onclick=()=>{human="RED";$('sRed').classList.add('on');$('sBlue').classList.remove('on');reset();};
+$('sBlue').onclick=()=>{human="BLUE";$('sBlue').classList.add('on');$('sRed').classList.remove('on');reset();};
+
+$('leg').innerHTML=Object.entries(T).map(([k,v])=>`<div><i>${ICON[k]}</i>${v.n}</div>`).join("");
+$('ruleList').innerHTML=[
+ ["CMD","đi ngang/dọc bao xa cũng được, nhưng chỉ ăn quân sát cạnh."],
+ ["NAVY","chạy dọc trong dải biển; hoả lực bắn tại chỗ 4 ô theo 8 hướng, với tới cả đất liền."],
+ ["AIR","bay 8 hướng tối đa 4 ô, vượt qua vật cản; ăn xong có thể ở lại hoặc bay về chỗ cũ."],
+ ["ART","đi 8 hướng tối đa 3 ô qua điểm trống; ăn quân phải nhảy qua đúng 1 quân chắn như quân Pháo."],
+ ["SAM","đi/ăn 2 ô theo trục, 1 ô chéo; phủ vùng cấm bay rộng."],
+ ["TANK","đi/ăn 2 ô ngang dọc; bắn tại chỗ tàu chiến trong tầm."],
+ ["AA","đi/ăn 1 ô ngang dọc; phủ vùng cấm bay bán kính 1."],
+ ["ENG","đi/ăn 1 ô ngang dọc; cõng được quân nặng qua sông sâu."],
+ ["INF","đi/ăn 1 ô ngang dọc."],
+ ["MIL","đi/ăn 1 ô cả 8 hướng."],
+].map(([k,d])=>`<li><b>${T[k].n}</b>: ${d}</li>`).join("");
+
+depth=+$('lvl').value+1;
+setup();draw();
+})();
+</script>
+</body>
+</html>
